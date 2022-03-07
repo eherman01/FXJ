@@ -4,10 +4,10 @@ using UnityEngine;
 
 public class Weapon : NetworkedBehaviour
 {
-
-    public void FireInput(bool newFireState)
+    public void OnFireInputChanged()
     {
-        Debug.Log("inshallah");
+        Debug.Log("asdf");
+     //   CameraShake.instance.ViewportCameraShake(1, 0.5f);
     }
 
 }
