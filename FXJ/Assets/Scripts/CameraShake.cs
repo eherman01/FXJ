@@ -7,15 +7,22 @@ public class CameraShake : MonoBehaviour
 {
     private CinemachineVirtualCamera vc;
     public static CameraShake instance = null;
-
     private float shakeTimer;
+
+    private float cachedIntensity = 1.0f;
+    private float oldFOV;
+    private float timeMultiplier;
+
+    [SerializeField] AnimationCurve cameraShakeCurve = new AnimationCurve();
 
     void Awake()
     {
         vc = GetComponent<CinemachineVirtualCamera>();
 
+        oldFOV = vc.m_Lens.FieldOfView;
+
         if (instance != null)
-            throw new Exception("Trying to create multiple instances of singleton CameraShake");
+            throw new Exception("Trying to create multiple instances of singleton CameraShake");    //cursed way of making a singleton but i cba
         else
             instance = this;
 
@@ -23,10 +30,9 @@ public class CameraShake : MonoBehaviour
 
     public void ViewportCameraShake(float intensity, float time)
     {
-        CinemachineBasicMultiChannelPerlin cinemachineBasicMultiChannelPerlin = vc.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
-
-        cinemachineBasicMultiChannelPerlin.m_AmplitudeGain = intensity;
+        cachedIntensity = intensity;
         shakeTimer = time;
+        timeMultiplier = cameraShakeCurve.keys[cameraShakeCurve.length - 1].time / time;
     }
 
     void Update()
@@ -36,11 +42,12 @@ public class CameraShake : MonoBehaviour
 
         shakeTimer -= Time.deltaTime;
 
+        vc.m_Lens.FieldOfView = oldFOV + (cameraShakeCurve.Evaluate(shakeTimer * timeMultiplier) * cachedIntensity);
+
         if (shakeTimer <= 0)
         {
-            CinemachineBasicMultiChannelPerlin cinemachineBasicMultiChannelPerlin = vc.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
-
-            cinemachineBasicMultiChannelPerlin.m_AmplitudeGain = 0;
+            vc.m_Lens.FieldOfView = oldFOV;
+            shakeTimer = 0;
         }
 
     }

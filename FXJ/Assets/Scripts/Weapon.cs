@@ -4,10 +4,38 @@ using UnityEngine;
 
 public class Weapon : NetworkedBehaviour
 {
+
+    [SerializeField] ParticleSystem muzzleFlash;
+
+    [SerializeField] float TimeBetweenShots = 0.1f;
+
+    private float TBTSTimer = 0.0f;
+
+    bool bIsFiring = false;
+
     public void OnFireInputChanged()
     {
-        Debug.Log("asdf");
-     //   CameraShake.instance.ViewportCameraShake(1, 0.5f);
+        bIsFiring = !bIsFiring;
+
+    }
+    private void Fire()
+    {
+        muzzleFlash.Emit(1);
+        CameraShake.instance.ViewportCameraShake(1.0f, 0.1f);
+    }
+
+
+    private void Update()
+    {
+        TBTSTimer += Time.deltaTime;
+
+        if(TBTSTimer >= TimeBetweenShots)
+        {
+            TBTSTimer = 0.0f;
+
+            if(bIsFiring)
+                Fire();
+        }
     }
 
 }
