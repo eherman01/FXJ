@@ -5554,7 +5554,7 @@ MonoBehaviour:
   CinemachineCameraTarget: {fileID: 5110773157344612218}
   TopClamp: 89
   BottomClamp: -89
-  weapon: {fileID: 363652358}
+  m_weapon: {fileID: 363652358}
 --- !u!143 &584067371716933163
 CharacterController:
   m_ObjectHideFlags: 0
@@ -6085,6 +6085,30 @@ PrefabInstance:
       propertyPath: muzzleFlash
       value: 
       objectReference: {fileID: 607786184}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPattern.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPattern.Array.data[0].x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPattern.Array.data[1].x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPattern.Array.data[1].y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPattern.Array.data[2].x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPattern.Array.data[2].y
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4355233790471249565, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
       propertyPath: m_RootOrder
       value: 7

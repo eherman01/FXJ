@@ -60,8 +60,26 @@ namespace StarterAssets
 		private float _verticalVelocity;
 		private float _terminalVelocity = 53.0f;
 
+		//recoil
+		private Vector2 recoilTarget;
+		private Vector2 recoilStart;
+		private float recoilTimer;
+
 		[Header("Weapon")]
-		[SerializeField] Weapon weapon = null;
+		[SerializeField] Weapon m_weapon = null;
+		public Weapon Weapon 
+		{
+			get { return m_weapon; }
+            private set 
+			{
+				m_weapon.OnFire -= OnWeaponFired;
+				m_weapon = value;
+
+				if (m_weapon != null)
+					m_weapon.OnFire += OnWeaponFired;
+
+			}
+		}
 
 		// timeout deltatime
 		private float _jumpTimeoutDelta;
@@ -78,6 +96,8 @@ namespace StarterAssets
 
 		private void Awake()
 		{
+			Weapon = m_weapon;
+
 			// get a reference to our main camera
 			if (_mainCamera == null)
 			{
@@ -105,8 +125,20 @@ namespace StarterAssets
 
 		public void OnFire()
         {
-			if (weapon != null)
-				weapon.OnFireInputChanged();
+			if (Weapon != null)
+				Weapon.OnFireInputChanged();
+
+		}
+
+		private void OnWeaponFired()
+        {
+			Vector2 recoilRaw = Weapon.GetRecoil();
+
+			//Calculate recoil here
+
+			recoilTarget = recoilRaw;
+			recoilStart = Vector2.zero;
+			recoilTimer = 0;
 
 		}
 
@@ -125,13 +157,25 @@ namespace StarterAssets
 		private void CameraRotation()
 		{
 			// if there is an input
-			if (_input.look.sqrMagnitude >= _threshold)
+			if (_input.look.sqrMagnitude >= _threshold || recoilTimer <= Weapon.GetRecoilTime())
 			{
+
 				//Don't multiply mouse input by Time.deltaTime
 				float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 				
 				_cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
 				_rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
+
+				if (Weapon && recoilTimer <= Weapon.GetRecoilTime())
+				{
+					recoilTimer += Time.deltaTime / Weapon.GetRecoilTime();
+					Vector2 dt = Vector2.Lerp(recoilStart, recoilTarget, recoilTimer);
+
+					_cinemachineTargetPitch += dt.y;
+					_rotationVelocity += dt.x;
+
+				}
+
 
 				// clamp our pitch rotation
 				_cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, BottomClamp, TopClamp);
@@ -141,6 +185,7 @@ namespace StarterAssets
 
 				// rotate the player left and right
 				transform.Rotate(Vector3.up * _rotationVelocity);
+
 			}
 		}
 
