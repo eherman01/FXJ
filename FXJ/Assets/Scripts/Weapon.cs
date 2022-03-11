@@ -8,6 +8,7 @@ public class Weapon : NetworkedBehaviour
     public UnityAction OnFire = delegate { };
 
     [SerializeField] Vector2[] SprayPattern;
+    [SerializeField] float SprayPatternScale = 1.0f;
     [SerializeField] ParticleSystem muzzleFlash;
     [SerializeField] float TimeBetweenShots = 0.1f;
     [SerializeField] float AimResetTime = 0.2f;
@@ -21,13 +22,19 @@ public class Weapon : NetworkedBehaviour
 
     private int BulletsInBurst = 0;
 
+    //bulletholes
+    private static Queue<GameObject> bulletHolesInScene = new Queue<GameObject>();
+
+    [Header("Weapon")]
+    [SerializeField] GameObject bulletHole = null;
+    [Space]
     [Header("Ammo")]
     [SerializeField] int ClipSize = 30;
     [Space]
     //Flags
     public bool bIsFiring = false;
 
-    public Vector2 GetRecoil() { return SprayPattern[Mathf.Min(BulletsInBurst, SprayPattern.Length) - 1]; }
+    public Vector2 GetRecoil() { return SprayPattern[Mathf.Min(BulletsInBurst, SprayPattern.Length) - 1] * SprayPatternScale; }
     public float GetRecoilTime() { return TimeBetweenShots; }
 
     public void OnFireInputChanged()
@@ -40,6 +47,16 @@ public class Weapon : NetworkedBehaviour
         CurrentAmmo--;
         BulletsInBurst++;
         AimResetTimer = 0.0f;
+
+        Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
+        RaycastHit hit;
+        if(Physics.Raycast(ray, out hit))
+        {
+            bulletHolesInScene.Enqueue(Instantiate(bulletHole, hit.point, Quaternion.LookRotation(hit.normal)));
+
+            if (bulletHolesInScene.Count > 100)
+                Destroy(bulletHolesInScene.Dequeue());
+        }
 
         OnFire.Invoke();
 

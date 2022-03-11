@@ -6082,9 +6082,17 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: bulletHole
+      value: 
+      objectReference: {fileID: 4275556537397047135, guid: 576df1f77a22a0e49acc143a029a0ddb, type: 3}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
       propertyPath: muzzleFlash
       value: 
       objectReference: {fileID: 607786184}
+    - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
+      propertyPath: SprayPatternScale
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 4355233790471249564, guid: 7c84fdc40ceb4254aaf095caedac5930, type: 3}
       propertyPath: SprayPattern.Array.size
       value: 3
