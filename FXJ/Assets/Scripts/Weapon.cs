@@ -52,10 +52,15 @@ public class Weapon : NetworkedBehaviour
         RaycastHit hit;
         if(Physics.Raycast(ray, out hit))
         {
-            bulletHolesInScene.Enqueue(Instantiate(bulletHole, hit.point, Quaternion.LookRotation(hit.normal)));
+            bulletHolesInScene.Enqueue(Instantiate(bulletHole, hit.point, Quaternion.LookRotation(hit.normal), hit.transform));
 
             if (bulletHolesInScene.Count > 100)
                 Destroy(bulletHolesInScene.Dequeue());
+
+            TargetBehaviour target = hit.transform.GetComponentInParent<TargetBehaviour>();
+            if (target)
+                target.OnHit(hit.point);
+
         }
 
         OnFire.Invoke();
