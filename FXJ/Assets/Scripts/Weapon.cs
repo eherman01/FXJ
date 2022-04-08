@@ -13,7 +13,6 @@ public class Weapon : NetworkedBehaviour
     [SerializeField] float TimeBetweenShots = 0.1f;
     [SerializeField] float AimResetTime = 0.2f;
 
-
     public int CurrentAmmo { get; private set; } = 30;
 
     //Vars
@@ -27,12 +26,18 @@ public class Weapon : NetworkedBehaviour
 
     [Header("Weapon")]
     [SerializeField] GameObject bulletHole = null;
+    [SerializeField] GameObject serverBulletHole = null;
     [Space]
     [Header("Ammo")]
     [SerializeField] int ClipSize = 30;
     [Space]
     //Flags
     public bool bIsFiring = false;
+
+    private void Start()
+    {
+        base.Init();
+    }
 
     public Vector2 GetRecoil() { return SprayPattern[Mathf.Min(BulletsInBurst, SprayPattern.Length) - 1] * SprayPatternScale; }
     public float GetRecoilTime() { return TimeBetweenShots; }
@@ -50,28 +55,53 @@ public class Weapon : NetworkedBehaviour
 
         Ray ray = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
         RaycastHit hit;
-        if(Physics.Raycast(ray, out hit))
+        int layerMask = ~LayerMask.GetMask("Server");
+        if (Physics.Raycast(ray, out hit, 10000.0f, layerMask))
         {
-            bulletHolesInScene.Enqueue(Instantiate(bulletHole, hit.point, Quaternion.LookRotation(hit.normal), hit.transform));
+            GameObject bhole = Instantiate(bulletHole, hit.point, Quaternion.LookRotation(hit.normal));
+            bhole.transform.parent = hit.transform;
+            bulletHolesInScene.Enqueue(bhole);
 
             if (bulletHolesInScene.Count > 100)
                 Destroy(bulletHolesInScene.Dequeue());
+
+        }
+
+        Server.Invoke_Server_Func_Reliable(this, "Fire_RPC_Server", new object[] { ray });
+
+        OnFire.Invoke();
+        muzzleFlash.Emit(1);
+        CameraShake.instance.ViewportCameraShake(1.0f, 0.1f);
+    }
+    private void Fire_RPC_Server(Ray ray)
+    {
+        RaycastHit hit;
+        int layerMask = ~LayerMask.GetMask("Client");
+        if (Physics.Raycast(ray, out hit, 10000.0f, layerMask))
+        {
+            if (Server.IsDebugMode())
+            {
+                GameObject bhole = Instantiate(serverBulletHole, hit.point, Quaternion.LookRotation(hit.normal));
+                bhole.transform.parent = hit.transform;
+                bulletHolesInScene.Enqueue(bhole);
+
+                if (bulletHolesInScene.Count > 100)
+                    Destroy(bulletHolesInScene.Dequeue());
+            }
 
             TargetBehaviour target = hit.transform.GetComponentInParent<TargetBehaviour>();
             if (target)
                 target.OnHit(hit.point);
 
         }
-
-        OnFire.Invoke();
-
-        muzzleFlash.Emit(1);
-        CameraShake.instance.ViewportCameraShake(1.0f, 0.1f);
     }
 
 
     private void Update()
     {
+        if (GetNetMode() == ENetMode.SERVER)
+            return;
+
         TBTSTimer += Time.deltaTime;
 
         if(TBTSTimer >= TimeBetweenShots)

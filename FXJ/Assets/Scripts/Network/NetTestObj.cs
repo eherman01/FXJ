@@ -15,7 +15,7 @@ public class NetTestObj : NetworkedBehaviour
         base.Init();
 
         if(GetNetMode() == ENetMode.CLIENT)
-            Server.Invoke_Server_Func_UDP(this, "PrintString_Server", new object[] { "Inshallah" });
+            Server.Invoke_Server_Func_Unreliable(this, "PrintString_Server", new object[] { "Inshallah" });
     }
 
     private void Update()
@@ -30,7 +30,7 @@ public class NetTestObj : NetworkedBehaviour
     private void PrintString_Server(string msg)
     {
         CubeRenderer.material = ServerMaterial;
-        Server.Invoke_Client_Func_UDP(this, "PrintString_Client", new object[] { "Inshallah" });
+        Server.Invoke_Client_Func_Unreliable(this, "PrintString_Client", new object[] { "Inshallah" });
 
     }
 

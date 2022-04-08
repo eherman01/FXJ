@@ -149,7 +149,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac63ec6c114ba0a4a8164d05441207df, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsNetworked: 1
+  NetMode: 0
+  debugServerMat: {fileID: 2100000, guid: 491206ed80e4d3e41a27a0b9287101af, type: 2}
+  maxHealth: 3
+  clamps: {x: -9, y: 9}
+  moveSpeed: 4
   animator: {fileID: 5572313654226423711}
+  bMoveWhenDead: 1
 --- !u!1 &6060505764130514702
 GameObject:
   m_ObjectHideFlags: 0

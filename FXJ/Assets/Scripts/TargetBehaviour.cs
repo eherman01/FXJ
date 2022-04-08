@@ -2,8 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TargetBehaviour : MonoBehaviour
+public class TargetBehaviour : NetworkedBehaviour
 {
+    [SerializeField] Material debugServerMat = null;
     [SerializeField] int maxHealth = 3;
     [SerializeField] Vector2 clamps = new Vector2(-9.0f, 9.0f);
     [SerializeField] float moveSpeed;
@@ -12,9 +13,31 @@ public class TargetBehaviour : MonoBehaviour
 
     private int health = 0;
     private int movementDir = 1;
+    private Vector3 cachedPosition;
+    private int lastPositionUpdateFrame;
+
+    private void Start()
+    {
+        base.Init();
+
+        if(GetNetMode() == ENetMode.SERVER)
+            foreach (MeshRenderer r in transform.GetComponentsInChildren<MeshRenderer>())
+            {
+                if (Server.IsDebugMode())
+                    r.material = debugServerMat;
+                else
+                    r.enabled = false;
+            }
+
+    }
 
     private void Update()
     {
+        UpdateBase();
+
+        if (GetNetMode() != ENetMode.SERVER)
+            return;
+
         if (!TargetManager.instance.bIsGameActive)
             return;
 
@@ -52,16 +75,66 @@ public class TargetBehaviour : MonoBehaviour
 
     public void Kill()
     {
+        if (GetNetMode() == ENetMode.SERVER)
+        {
+            Server.Invoke_Client_Func_Reliable(this, "Kill_RPC_Client", null);
+            TargetManager.instance.OnTargetKilled();
+        }
+
         animator.SetBool("isAlive", false);
-        TargetManager.instance.OnTargetKilled();
+
     }
 
     public void Deploy()
     {
+        if(GetNetMode() == ENetMode.SERVER)
+            Server.Invoke_Client_Func_Reliable(this, "Deploy_RPC_Client", null);
+
         animator.SetBool("isAlive", true);
         health = maxHealth;
     }
 
     private bool IsAlive() { return health > 0; }
+
+    protected override void NetworkTick()
+    {
+        if (GetNetMode() == ENetMode.SERVER)
+        {
+            Server.Invoke_Client_Func_Unreliable(this, "SetPosition_RPC_Client", new object[] { transform.position, Time.frameCount });
+        }
+
+    }
+    private void Deploy_RPC_Client()
+    {
+        Deploy();
+    }
+
+    private void Kill_RPC_Client()
+    {
+        Kill();
+    }
+
+    private void SetPosition_RPC_Client(Vector3 position, int frameCount)
+    {
+        //Only use latest movement command if we recieve two on the same frame
+        if (frameCount > lastPositionUpdateFrame)
+        {
+            cachedPosition = position;
+            lastPositionUpdateFrame = frameCount;
+            SetPosition_Internal(cachedPosition);
+
+        }
+        else
+        {
+            Debug.Log("out of order movement command dropped");
+        }
+    }
+
+    private void SetPosition_Internal(Vector3 position)
+    {
+        transform.position = position;
+
+    }
+
 
 }

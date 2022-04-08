@@ -18,7 +18,7 @@ public class NetworkedBehaviour : MonoBehaviour
         MAX
     }
 
-    private ENetMode NetMode = ENetMode.NONE;
+    [SerializeField] ENetMode NetMode = ENetMode.NONE;
 
     public ENetMode GetNetMode() { return NetMode; }
     public NetworkedBehaviour GetServerInstance() { return ServerInstance; }
@@ -49,6 +49,12 @@ public class NetworkedBehaviour : MonoBehaviour
         ClientInstance = ClientObj.GetComponent(GetType()) as NetworkedBehaviour;
         ClientInstance.ServerInstance = this;
         ClientInstance.NetMode = ENetMode.CLIENT;
+
+        if (gameObject.layer == 0)
+        {
+            Utility.SetLayerRecursively(gameObject, "Server");
+            Utility.SetLayerRecursively(ClientInstance.gameObject, "Client");
+        }
 
     }
     

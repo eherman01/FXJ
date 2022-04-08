@@ -28,12 +28,12 @@ public class NetworkedTransform : NetworkedBehaviour
 
         if(GetNetMode() == ENetMode.CLIENT && ReplicateMovement)
         {
-            Server.Invoke_Server_Func_UDP(this, "SetPosition_RPC_Server", new object[] { transform.position, Time.frameCount });
+            Server.Invoke_Server_Func_Unreliable(this, "SetPosition_RPC_Server", new object[] { transform.position, Time.frameCount });
         }
 
         if (GetNetMode() == ENetMode.SERVER && ReplicateMovement)
         {
-            Server.Invoke_Client_Func_UDP(this, "SetPosition_RPC_Client", new object[] { transform.position, Time.frameCount });
+            Server.Invoke_Client_Func_Unreliable(this, "SetPosition_RPC_Client", new object[] { transform.position, Time.frameCount });
         }
 
     }
@@ -83,7 +83,6 @@ public class NetworkedTransform : NetworkedBehaviour
 
     private void SetPosition_Internal(Vector3 position)
     {
-
         transform.position = position;
 
     }

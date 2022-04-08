@@ -114,6 +114,8 @@ namespace StarterAssets
 			// reset our timeouts on start
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
+
+			m_weapon = (Weapon) m_weapon.GetClientInstance();
 		}
 
 		private void Update()
