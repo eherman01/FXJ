@@ -126,7 +126,7 @@ public class TargetBehaviour : NetworkedBehaviour
         }
         else
         {
-            Debug.Log("out of order movement command dropped");
+            //Debug.Log("out of order movement command dropped");
         }
     }
 

@@ -263,9 +263,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ServerParams:
     TickRate: 16
-    Latency: 5
-    LatencyVariance: 5
-    PacketLossPercentage: 0
+    Latency: 100
+    OutOfOrderChance: 0.5
   bDebugMode: 1
 --- !u!4 &703922169
 Transform:
@@ -1231,7 +1230,7 @@ MonoBehaviour:
     ModeOverride: 0
     LensShift: {x: 0, y: 0}
     GateFit: 2
-    m_SensorSize: {x: 2.078998, y: 1}
+    m_SensorSize: {x: 2.0597303, y: 1}
   m_Transitions:
     m_BlendHint: 0
     m_InheritPosition: 0

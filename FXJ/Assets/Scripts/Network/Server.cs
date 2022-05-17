@@ -30,10 +30,8 @@ public class Server : MonoBehaviour
 
         public int Latency;
 
-        public int LatencyVariance;
-
         [Range(0,1)]
-        public float PacketLossPercentage;
+        public float OutOfOrderChance;
 
     }
 
@@ -48,7 +46,96 @@ public class Server : MonoBehaviour
             return;
     }
 
-    public static async void Invoke_Server_Func_Unreliable(NetworkedBehaviour Target, string FunctionName, object[] args)
+    public List<NetworkPacket> inBuffer = new List<NetworkPacket>();
+    public List<NetworkPacket> outBuffer = new List<NetworkPacket>();
+    public void BufferIncomingPacket(NetworkPacket packet)
+    {
+        inBuffer.Add(packet);
+
+        int i = 0;
+        while(i < inBuffer.Count - 1)
+        {
+            NetworkPacket first = inBuffer[i];
+            NetworkPacket second = inBuffer[i+1];
+
+            if (UnityEngine.Random.Range(0.0f, 1.0f) <= ServerParams.OutOfOrderChance)
+            {
+                inBuffer[i] = second;
+                inBuffer[i+1] = first;
+                Debug.Log("swap");
+            }
+            else
+            {
+                i++;
+            }
+
+        }
+
+    }
+    public void BufferOutgoingPacket(NetworkPacket packet)
+    {
+        outBuffer.Add(packet);
+
+        int i = 0;
+        while (i < outBuffer.Count - 1)
+        {
+            NetworkPacket first = outBuffer[i];
+            NetworkPacket second = outBuffer[i + 1];
+
+            if (UnityEngine.Random.Range(0.0f, 1.0f) <= ServerParams.OutOfOrderChance)
+            {
+                outBuffer[i] = second;
+                outBuffer[i + 1] = first;
+            }
+            else
+            {
+                i++;
+            }
+
+        }
+    }
+
+    private void Update()
+    {
+        ApplyLatency();
+    }
+
+    private void ApplyLatency()
+    {
+
+        //Ingoing packet latency
+        while (inBuffer.Count > 0)
+        {
+            NetworkPacket pac = inBuffer[0];
+
+            if (Time.timeSinceLevelLoadAsDouble > pac.timestamp + ServerParams.Latency * 0.001)
+            {
+                inBuffer.RemoveAt(0);
+                pac.Invoke();
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        //Outgoing packet latency
+        while (outBuffer.Count > 0)
+        {
+            NetworkPacket pac = outBuffer[0];
+            if (Time.timeSinceLevelLoadAsDouble > pac.timestamp + ServerParams.Latency * 0.001)
+            {
+                outBuffer.RemoveAt(0);
+                pac.Invoke();
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    public static void Invoke_Server_Func_Unreliable(NetworkedBehaviour Target, string FunctionName, object[] args)
     {
         NetworkedBehaviour ServerTarget = Target.GetServerInstance();
 
@@ -56,31 +143,21 @@ public class Server : MonoBehaviour
         {
             Debug.LogError("Server instance not found for object " + Target);
             return;
-        } 
-        else if(ServerTarget != Target) //Apply ping and packet loss if not invoked from server
-        {
-            //todo: apply packet loss
-
-            //Apply ping
-            FXJServerParams ServerParams = Instance.ServerParams;
-            int Latency = Mathf.Max(0, UnityEngine.Random.Range(ServerParams.Latency - ServerParams.LatencyVariance, ServerParams.Latency + ServerParams.LatencyVariance));
-            await Task.Delay(Latency);
-
         }
 
-        //Invoke function
-        MethodInfo Func = ServerTarget.GetType().GetMethod(FunctionName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-        if(Func == null)
+        NetworkPacket packet = new NetworkPacket(ServerTarget, FunctionName, args, false);
+
+        if (ServerTarget == Target) //Invoke function immediately on server
         {
-            Debug.LogError("Function " + FunctionName + " not found on object of type " + ServerTarget.GetType());
+            packet.Invoke();
             return;
         }
 
-        Func.Invoke(ServerTarget, args);
+        Instance.BufferIncomingPacket(packet);
 
     }
 
-    public static async void Invoke_Client_Func_Unreliable(NetworkedBehaviour Target, string FunctionName, object[] args)
+    public static void Invoke_Client_Func_Unreliable(NetworkedBehaviour Target, string FunctionName, object[] args)
     {
         NetworkedBehaviour ClientTarget = Target.GetClientInstance();
 
@@ -89,32 +166,19 @@ public class Server : MonoBehaviour
             Debug.LogError("Client instance not found for object " + Target);
             return;
         }
-        else if (ClientTarget != Target) //Apply ping and packet loss if not invoked from client
+
+        NetworkPacket packet = new NetworkPacket(ClientTarget, FunctionName, args, false);
+
+        if (ClientTarget == Target) //Invoke function immediately on owning client
         {
-            //todo: apply packet loss
-
-            //Apply ping
-            FXJServerParams ServerParams = Instance.ServerParams;
-            int Latency = Mathf.Max(0, UnityEngine.Random.Range(ServerParams.Latency - ServerParams.LatencyVariance, ServerParams.Latency + ServerParams.LatencyVariance));
-            await Task.Delay(Latency);
-        }
-
-        //todo: apply packet loss
-        //todo: apply ping
-
-        MethodInfo Func = ClientTarget.GetType().GetMethod(FunctionName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-        if (Func == null)
-        {
-            Debug.LogError("Function " + FunctionName + " not found on object of type " + ClientTarget.GetType());
+            packet.Invoke();
             return;
         }
 
-        Func.Invoke(ClientTarget, args);
-
+        Instance.BufferOutgoingPacket(packet);
     }
 
-    //todo: TCP
-    public static async void Invoke_Server_Func_Reliable(NetworkedBehaviour Target, string FunctionName, object[] args)
+    public static void Invoke_Server_Func_Reliable(NetworkedBehaviour Target, string FunctionName, object[] args)
     {
         NetworkedBehaviour ServerTarget = Target.GetServerInstance();
 
@@ -123,31 +187,20 @@ public class Server : MonoBehaviour
             Debug.LogError("Server instance not found for object " + Target);
             return;
         }
-        else if (ServerTarget != Target) //Apply ping and packet loss if not invoked from server
+
+        NetworkPacket packet = new NetworkPacket(ServerTarget, FunctionName, args, true);
+
+        if (ServerTarget == Target) //Invoke function immediately on server
         {
-            //todo: apply packet loss
-
-            //Apply ping
-            FXJServerParams ServerParams = Instance.ServerParams;
-            int Latency = Mathf.Max(0, UnityEngine.Random.Range(ServerParams.Latency - ServerParams.LatencyVariance, ServerParams.Latency + ServerParams.LatencyVariance));
-            await Task.Delay(Latency);
-
-        }
-
-        //Invoke function
-        MethodInfo Func = ServerTarget.GetType().GetMethod(FunctionName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-        if (Func == null)
-        {
-            Debug.LogError("Function " + FunctionName + " not found on object of type " + ServerTarget.GetType());
+            packet.Invoke();
             return;
         }
 
-        Func.Invoke(ServerTarget, args);
+        Instance.BufferIncomingPacket(packet);
 
     }
 
-    //todo: Reliable communication
-    public static async void Invoke_Client_Func_Reliable(NetworkedBehaviour Target, string FunctionName, object[] args)
+    public static void Invoke_Client_Func_Reliable(NetworkedBehaviour Target, string FunctionName, object[] args)
     {
         NetworkedBehaviour ClientTarget = Target.GetClientInstance();
 
@@ -156,28 +209,51 @@ public class Server : MonoBehaviour
             Debug.LogError("Client instance not found for object " + Target);
             return;
         }
-        else if (ClientTarget != Target) //Apply ping and packet loss if not invoked from client
+
+        NetworkPacket packet = new NetworkPacket(ClientTarget, FunctionName, args, true);
+
+        if (ClientTarget == Target) //Invoke function immediately on owning client
         {
-            //todo: apply packet loss
-
-            //Apply ping
-            FXJServerParams ServerParams = Instance.ServerParams;
-            int Latency = Mathf.Max(0, UnityEngine.Random.Range(ServerParams.Latency - ServerParams.LatencyVariance, ServerParams.Latency + ServerParams.LatencyVariance));
-            await Task.Delay(Latency);
-        }
-
-        //todo: apply packet loss
-        //todo: apply ping
-
-        MethodInfo Func = ClientTarget.GetType().GetMethod(FunctionName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-        if (Func == null)
-        {
-            Debug.LogError("Function " + FunctionName + " not found on object of type " + ClientTarget.GetType());
+            packet.Invoke();
             return;
         }
 
-        Func.Invoke(ClientTarget, args);
+        Instance.BufferOutgoingPacket(packet);
 
     }
 
+}
+
+public class NetworkPacket
+{
+    //meta
+    public bool bIsReliable = false;
+    public double timestamp;
+
+    //invocation info
+    public NetworkedBehaviour target;
+    public string methodName;
+    public object[] args;
+
+    public NetworkPacket(NetworkedBehaviour _target, string _methodName, object[] _args, bool _bIsReliable = false)
+    {
+        target = _target;
+        methodName = _methodName;
+        args = _args;
+        bIsReliable = _bIsReliable;
+
+        timestamp = Time.timeSinceLevelLoadAsDouble;
+    }
+
+    public void Invoke()
+    {
+        MethodInfo Func = target.GetType().GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+        if (Func == null)
+        {
+            Debug.LogError("Function " + methodName + " not found on object of type " + target.GetType());
+            return;
+        }
+
+        Func.Invoke(target, args);
+    }
 }
